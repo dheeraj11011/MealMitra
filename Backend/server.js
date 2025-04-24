@@ -15,9 +15,9 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Twilio Configuration
-const accountSid = process.env.TWILIO_ACCOUNT_SID || 'AC8edff9247eefea19e276dcb7917aee10';
-const authToken = process.env.TWILIO_AUTH_TOKEN || '252998b96e3661441bed86dc773bdebe';
-const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || '+18563885305';
+const accountSid = process.env.TWILIO_ACCOUNT_SID || 'A**********************************';
+const authToken = process.env.TWILIO_AUTH_TOKEN || '2***************************************e';
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || '+1**************5';
 const twilioClient = new twilio(accountSid, authToken);
 
 // MongoDB Connection
