@@ -225,76 +225,26 @@
         <p>© 2025 Food Donation Platform. All rights reserved.</p>
     </footer>
 
-    <div class="profile-popup" id="profile-popup">
-        <div class="profile-info" id="profile-info"></div>
-        <button class="back-button" onclick="goBack()">Back</button>
-        <button class="logout-button" onclick="logout()">Logout</button>
-    </div>
+ <div class="profile-popup" id="profile-popup">
+    <div class="profile-info" id="profile-info"></div>
+    <button class="back-button" onclick="goBack()">Back</button>
+    <button class="logout-button" onclick="logout()">Logout</button>
+</div>
 
-    <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById("sidebar");
-            sidebar.style.left = sidebar.style.left === "0px" ? "-250px" : "0px";
-        }
-
-        const user = JSON.parse(localStorage.getItem('user'));
-        const loginButton = document.getElementById('login-button');
-        const profilePopup = document.getElementById('profile-popup');
-        const profileInfo = document.getElementById('profile-info');
-
-        console.log('User from localStorage:', user);
-
-        if (user) {
-            loginButton.textContent = user.name || 'User';
-            loginButton.href = '#';
-            loginButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('Login button clicked');
-                showProfile();
-            });
-            profileInfo.textContent = `Name: ${user.name || 'N/A'}, Mobile: ${user.mobile || 'N/A'}, Role: ${user.role || 'N/A'}`;
-        } else {
-            loginButton.textContent = 'Login / Sign Up';
-            loginButton.href = 'login.html';
-            loginButton.addEventListener('click', function(e) {
-                console.log('Redirecting to login');
-            });
-        }
-
-        function showProfile() {
-            console.log('Showing profile popup');
-            profilePopup.classList.add('active');
-        }
-
-        function logout() {
-            console.log('Logging out');
-            localStorage.removeItem('user');
-            loginButton.textContent = 'Login / Sign Up';
-            loginButton.href = 'login.html';
-            loginButton.removeEventListener('click', showProfile);
-            loginButton.addEventListener('click', function(e) {
-                console.log('Redirecting to login after logout');
-            });
-            profilePopup.classList.remove('active');
-        }
-
-        function goBack() {
-            console.log('Going back');
-            profilePopup.classList.remove('active');
-        }
-
-         
-    </script>
-    <script src="FSD_JS.js"></script>
-    <div id="chat-container">
-        <div id="chat-box">
-            <div id="chat-log"></div>
-            <div class="chat-input-container">
-                <input type="text" id="chat-input" placeholder="Ask something..." onkeypress="if(event.key === 'Enter') sendMessage()" />
-                <button onclick="sendMessage()">Send</button>
-            </div>
+<div id="chat-container">
+    <div id="chat-box">
+        <div id="chat-log"></div>
+        <div class="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Ask something..." 
+                onkeypress="if(event.key === 'Enter') sendMessage()" />
+            <button onclick="sendMessage()">Send</button>
         </div>
-        <button id="chat-toggle" onclick="toggleChat()">💬</button>
     </div>
+    <button id="chat-toggle" onclick="toggleChat()">💬</button>
+</div>
+
+<!-- 🔥 VERY IMPORTANT: load JS LAST -->
+<script src="FSD_JS.js"></script>
+
 </body>
 </html>

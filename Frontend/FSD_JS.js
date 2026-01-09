@@ -1,32 +1,39 @@
-// Global variables
+// ------------------------
+// 🌍 BASE API URL (Render Backend)
+// ------------------------
+const BASE_URL = "https://mealmitra-khuf.onrender.com";
+
+// GLOBAL DATA
 let donations = [];
 let foodRequests = [];
 let isDonationsLoaded = false;
 let isRequestsLoaded = false;
 
-// DOM elements
+// DOM ELEMENTS
 const donationForm = document.getElementById("donationForm");
 const donationList = document.getElementById("donationList");
 const requestFoodForm = document.getElementById("requestFoodForm");
 const foodRequestList = document.getElementById("foodRequestList");
 
-// Initialize application
-document.addEventListener("DOMContentLoaded", function() {
+// ------------------------
+// INIT APP
+// ------------------------
+document.addEventListener("DOMContentLoaded", () => {
     initializeDonationSystem();
     initializeRequestSystem();
     setupSearchFunctionality();
     setupSidebarBehavior();
 });
 
-// Donation System
+
+// =======================
+// 🍱 DONATION SYSTEM
+// =======================
 function initializeDonationSystem() {
     if (donationForm) {
-        // Ensure only one listener is attached
-        donationForm.removeEventListener("submit", handleDonationSubmit);
         donationForm.addEventListener("submit", handleDonationSubmit);
-        console.log("Donation form listener attached");
     }
-    
+
     if (donationList && !isDonationsLoaded) {
         fetchAndUpdateDonations();
     }
@@ -37,129 +44,129 @@ async function handleDonationSubmit(event) {
 
     const errorMessage = document.getElementById("error-message");
     const successMessage = document.getElementById("success-message");
-    if (errorMessage && successMessage) {
-        errorMessage.style.display = "none";
-        successMessage.style.display = "none";
-    }
+
+    if (errorMessage) errorMessage.style.display = "none";
+    if (successMessage) successMessage.style.display = "none";
 
     const formData = {
         name: document.getElementById("name").value,
         email: document.getElementById("email").value,
-        mobile: formatMobileNumber(document.getElementById("mobile").value.trim()),
+        mobile: formatMobileNumber(document.getElementById("mobile").value),
         foodDetails: document.getElementById("foodDetails").value,
         expiryDate: document.getElementById("expiryDate").value,
         location: document.getElementById("location").value
     };
 
     if (!validateMobileNumber(formData.mobile)) {
-        if (errorMessage) {
-            errorMessage.textContent = "Invalid phone number. Use format: +[country code][number], e.g., +966123456789";
-            errorMessage.style.display = "block";
-        } else {
-            alert("Invalid phone number. Use format: +[country code][number], e.g., +966123456789");
-        }
+        errorMessage.textContent = "Invalid mobile number! Use format: +911234567890";
+        errorMessage.style.display = "block";
         return;
     }
 
-    console.log("Submitting donation:", formData);
+   try {
+    const response = await fetch(`${BASE_URL}/api/submit-donation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+    });
 
-    try {
-        const response = await fetch("http://localhost:5000/submit-donation", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData)
-        });
+    const result = await response.json();
 
-        const result = await response.json();
-        console.log("Server response:", { status: response.status, result });
-
-        if (response.ok) { // Status 200-299
-            if (successMessage) {
-                successMessage.textContent = result.message || "Donation submitted successfully!";
-                successMessage.style.display = "block";
-            }
-            donationForm.reset();
-            setTimeout(() => window.location.href = "donations.html", 1000); // Delay to show success
-        } else {
-            throw new Error(result.message || "Failed to submit donation");
-        }
-    } catch (error) {
-        console.error("Donation submission error:", error);
-        if (errorMessage) {
-            errorMessage.textContent = error.message || "Error submitting donation. Please try again later.";
-            errorMessage.style.display = "block";
-        } else {
-            alert(error.message || "Error submitting donation. Please try again later.");
-        }
+    if (response.ok) {
+        successMessage.textContent = result.message;
+        successMessage.style.display = "block";
+        donationForm.reset();
+        setTimeout(() => (window.location.href = "donations.html"), 800);
+    } else {
+        throw new Error(result.message);
     }
+} catch (error) {
+    errorMessage.textContent = error.message;
+    errorMessage.style.display = "block";
 }
 
-function formatMobileNumber(mobile) {
-    if (!mobile.startsWith('+') && mobile.match(/^\d+$/)) {
-        return `+${mobile}`;
-    }
-    return mobile;
 }
 
-function validateMobileNumber(mobile) {
-    return /^\+[1-9]\d{9,14}$/.test(mobile);
+function formatMobileNumber(num) {
+    if (!num.startsWith("+")) return "+" + num;
+    return num;
+}
+
+function validateMobileNumber(m) {
+    return /^\+[1-9]\d{9,14}$/.test(m);
 }
 
 async function fetchAndUpdateDonations() {
-    if (isDonationsLoaded) return;
-
     try {
-        const response = await fetch("http://localhost:5000/api/donations");
-        if (!response.ok) throw new Error("Failed to fetch donations");
-        
+        const response = await fetch(`${BASE_URL}/api/donations`);
         donations = await response.json();
-        updateDonationList(donations);
+        updateDonationList();
         isDonationsLoaded = true;
     } catch (error) {
-        console.error("Donation fetch error:", error);
-        if (donationList) {
-            donationList.innerHTML = "<p>Error loading donations. Please try again later.</p>";
-        }
+        donationList.innerHTML = "<p>Error loading donations.</p>";
     }
 }
 
-function updateDonationList(donationArray = donations) {
+function updateDonationList() {
     if (!donationList) return;
-    
-    donationList.innerHTML = donationArray.length === 0 
-        ? "<p>No donations found for this location.</p>"
-        : donationArray.map(createDonationItem).join("");
+    donationList.innerHTML =
+        donations.length ? donations.map(createDonationItem).join("") : "<p>No donations available.</p>";
 }
 
-function createDonationItem(donation) {
-    const isExpired = new Date(donation.expiryDate) < new Date();
-    const isAccepted = donation.status === 'Accepted';
-    
+function createDonationItem(d) {
+    const isAccepted = d.status === "Accepted";
+
     return `
         <div class="donation-item">
-            <h3>Donor: ${donation.name}</h3>
-            <p>Email: ${donation.email}</p>
-            <p>Mobile: ${donation.mobile}</p>
-            <p>Food Details: ${donation.foodDetails}</p>
-            <p>Location: <a href="https://www.google.com/maps/search/${encodeURIComponent(donation.location)}" target="_blank">${donation.location}</a></p>
-            <p>Expiry Date: ${donation.expiryDate}</p>
-            <p class="${isExpired ? 'expired' : ''}">${isExpired ? 'Expired' : ''}</p>
-            <p>Status: ${donation.status}</p>
-            <button class="receive-btn" onclick="receiveFood(this, '${donation._id}')" ${isAccepted ? 'disabled' : ''}>
-                ${isAccepted ? 'Food Received' : 'Receive Food'}
+            <h3>${d.name}</h3>
+            <p>Email: ${d.email}</p>
+            <p>Mobile: ${d.mobile}</p>
+            <p>Food: ${d.foodDetails}</p>
+            <p>Location: 
+                <a href="https://www.google.com/maps/search/${encodeURIComponent(d.location)}" target="_blank">
+                    ${d.location}
+                </a>
+            </p>
+            <p>Expiry: ${d.expiryDate}</p>
+            <p>Status: ${d.status}</p>
+            <button onclick="receiveFood(this, '${d._id}')" ${isAccepted ? "disabled" : ""}>
+                ${isAccepted ? "Food Received" : "Receive Food"}
             </button>
         </div>
     `;
 }
 
-// Food Request System
+async function receiveFood(button, id) {
+    try {
+        button.disabled = true;
+
+        const response = await fetch(`${BASE_URL}/api/donations/${id}/accept`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (!response.ok) throw new Error("Failed to accept");
+
+        button.innerText = "Food Received";
+        button.style.background = "green";
+
+        await fetchAndUpdateDonations();
+    } catch (e) {
+        alert("Error: " + e.message);
+        button.disabled = false;
+    }
+}
+
+
+
+// =======================
+// 🍽 FOOD REQUEST SYSTEM
+// =======================
 function initializeRequestSystem() {
     if (requestFoodForm) {
-        requestFoodForm.removeEventListener("submit", handleRequestSubmit);
         requestFoodForm.addEventListener("submit", handleRequestSubmit);
-        console.log("Request form listener attached");
     }
-    
+
     if (foodRequestList && !isRequestsLoaded) {
         fetchAndUpdateFoodRequests();
     }
@@ -168,230 +175,124 @@ function initializeRequestSystem() {
 async function handleRequestSubmit(event) {
     event.preventDefault();
 
-    const errorMessage = document.getElementById("error-message");
-    const successMessage = document.getElementById("success-message");
-    if (errorMessage && successMessage) {
-        errorMessage.style.display = "none";
-        successMessage.style.display = "none";
-    }
-
-    const requestData = {
+    const reqData = {
         requestorName: document.getElementById("requestorName").value,
         requestorMobile: document.getElementById("requestorMobile").value,
         requestorLocation: document.getElementById("requestorLocation").value
     };
 
-    console.log("Submitting food request:", requestData);
-
     try {
-        const response = await fetch("http://localhost:5000/api/request-food", {
+        const response = await fetch(`${BASE_URL}/api/request-food`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify(reqData)
         });
 
-        const result = await response.json();
-        console.log("Server response:", { status: response.status, result });
+        const data = await response.json();
 
         if (response.ok) {
-            if (successMessage) {
-                successMessage.textContent = result.message || "Food request submitted successfully!";
-                successMessage.style.display = "block";
-            }
+            alert("Food request submitted!");
             requestFoodForm.reset();
-            setTimeout(() => window.location.href = "Food_Request.html", 1000);
+            setTimeout(() => (window.location.href = "Food_Request.html"), 800);
         } else {
-            throw new Error(result.message || "Failed to submit request");
+            throw new Error(data.message);
         }
-    } catch (error) {
-        console.error("Request submission error:", error);
-        if (errorMessage) {
-            errorMessage.textContent = error.message || "Error submitting request. Please try again later.";
-            errorMessage.style.display = "block";
-        } else {
-            alert(error.message || "Error submitting request. Please try again later.");
-        }
+    } catch (err) {
+        alert("Error submitting request");
     }
 }
 
 async function fetchAndUpdateFoodRequests() {
-    if (isRequestsLoaded) return;
-
     try {
-        const response = await fetch("http://localhost:5000/api/food-requests");
-        if (!response.ok) throw new Error("Failed to fetch requests");
-        
+        const response = await fetch(`${BASE_URL}/api/food-requests`);
         foodRequests = await response.json();
-        updateFoodRequestList(foodRequests);
+        updateFoodRequestList();
         isRequestsLoaded = true;
-    } catch (error) {
-        console.error("Request fetch error:", error);
-        if (foodRequestList) {
-            foodRequestList.innerHTML = "<p>Error loading requests. Please try again later.</p>";
-        }
+    } catch (e) {
+        foodRequestList.innerHTML = "<p>Error loading requests.</p>";
     }
 }
 
-function updateFoodRequestList(requestArray = foodRequests) {
+function updateFoodRequestList() {
     if (!foodRequestList) return;
-    
-    foodRequestList.innerHTML = requestArray.length === 0
-        ? "<p>No food requests found.</p>"
-        : requestArray.map(createRequestItem).join("");
+
+    foodRequestList.innerHTML = foodRequests.length
+        ? foodRequests.map(createRequestItem).join("")
+        : "<p>No requests found.</p>";
 }
 
-function createRequestItem(request) {
+function createRequestItem(r) {
     return `
         <div class="food-request-item">
-            <h3>Requestor: ${request.requestorName}</h3>
-            <p>Mobile: ${request.requestorMobile}</p>
-            <p>Location: <a href="https://www.google.com/maps/search/${encodeURIComponent(request.requestorLocation)}" target="_blank">${request.requestorLocation}</a></p>
-            <button onclick="acceptRequest('${request._id}')">Accept Request</button>
-             
+            <h3>${r.requestorName}</h3>
+            <p>${r.requestorMobile}</p>
+            <p>
+                <a href="https://www.google.com/maps/search/${encodeURIComponent(r.requestorLocation)}" target="_blank">
+                    ${r.requestorLocation}
+                </a>
+            </p>
+            <button onclick="acceptRequest('${r._id}')">Accept Request</button>
         </div>
     `;
 }
 
-// Shared Functions
-function setupSearchFunctionality() {
-    const searchButton = document.getElementById("searchButton");
-    const searchInput = document.getElementById("locationSearch");
+async function acceptRequest(id) {
+    const response = await fetch(`${BASE_URL}/api/food-requests/${id}/accept`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" }
+    });
 
-    if (!searchButton || !searchInput) return;
-
-    const searchHandler = () => {
-        const searchValue = searchInput.value.trim().toLowerCase();
-        
-        if (donationList) {
-            const filteredDonations = donations.filter(d => 
-                d.location.toLowerCase().includes(searchValue)
-            );
-            updateDonationList(filteredDonations);
-        }
-        
-        if (foodRequestList) {
-            const filteredRequests = foodRequests.filter(r => 
-                r.requestorLocation.toLowerCase().includes(searchValue)
-            );
-            updateFoodRequestList(filteredRequests);
-        }
-    };
-
-    searchButton.addEventListener("click", searchHandler);
-    searchInput.addEventListener("input", searchHandler);
-}
-
-function setupSidebarBehavior() {
-    const sidebar = document.getElementById("sidebar");
-    const hamburger = document.querySelector(".hamburger");
-
-    if (sidebar && hamburger) {
-        document.addEventListener("click", function(event) {
-            if (!sidebar.contains(event.target) && !hamburger.contains(event.target)) {
-                sidebar.style.left = "-250px";
-            }
-        });
+    if (response.ok) {
+        alert("Accepted!");
+        fetchAndUpdateFoodRequests();
+    } else {
+        alert("Error accepting request!");
     }
 }
 
-// Button Actions
-async function receiveFood(button, donationId) {
-    if (button.disabled) return;
-    
-    button.disabled = true;
-    
-    try {
-        const response = await fetch(`http://localhost:5000/api/donations/${donationId}/accept`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" }
-        });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Failed to accept donation");
-        }
 
-        button.innerText = "Food Received";
-        button.style.backgroundColor = "#4CAF50";
-        button.style.color = "white";
-        button.classList.add("received");
+// =======================
+// 🤖 AI CHATBOT SYSTEM
+// =======================
 
-        isDonationsLoaded = false;
-        await fetchAndUpdateDonations();
-    } catch (error) {
-        console.error("Donation acceptance error:", error);
-        alert("Failed to accept donation: " + error.message);
-        button.disabled = false;
-    }
-}
-
-async function acceptRequest(requestId) {
-    try {
-        const response = await fetch(`http://localhost:5000/api/food-requests/${requestId}/accept`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" }
-        });
-
-        if (response.ok) {
-            alert("Request accepted!");
-            await fetchAndUpdateFoodRequests();
-        } else {
-            const errorData = await response.json();
-            alert(errorData.message || "Failed to accept request.");
-        }
-    } catch (error) {
-        console.error("Request acceptance error:", error);
-        alert("Error accepting request: " + error.message);
-    }
-}
-
- 
-
- let sessionId = null;
+let sessionId = null;
 
 function toggleChat() {
-    const chatBox = document.getElementById("chat-box");
-    chatBox.style.display = chatBox.style.display === "none" ? "block" : "none";
+    const box = document.getElementById("chat-box");
+    box.style.display = box.style.display === "none" ? "block" : "none";
 }
 
 async function sendMessage() {
     const input = document.getElementById("chat-input");
-    const message = input.value.trim();
-    if (!message) return;
+    const text = input.value.trim();
+    if (!text) return;
 
     const log = document.getElementById("chat-log");
-    log.innerHTML += `<div><strong>You:</strong> ${message}</div>`;
-    input.value = '';
+    log.innerHTML += `<div><strong>You:</strong> ${text}</div>`;
+    input.value = "";
 
-    // Typing indicator
-    const typingId = `typing-${Date.now()}`;
-    log.innerHTML += `<div id="${typingId}"><strong>Bot:</strong> Typing...</div>`;
-    log.scrollTop = log.scrollHeight;
+    const typingId = `t-${Date.now()}`;
+    log.innerHTML += `<div id="${typingId}">Bot: Typing...</div>`;
 
     try {
-        const res = await fetch('http://localhost:3000/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, sessionId })
+        const res = await fetch(`${BASE_URL}/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text, sessionId })
         });
 
         const data = await res.json();
-
-        // Remove typing indicator
         document.getElementById(typingId).remove();
 
         if (data.reply) {
             log.innerHTML += `<div><strong>Bot:</strong> ${data.reply}</div>`;
-            if (data.sessionId) sessionId = data.sessionId; // Save for future messages
-        } else if (data.error) {
-            log.innerHTML += `<div><strong>Bot:</strong> Error: ${data.error}${data.details ? ' - ' + data.details : ''}</div>`;
-        } else {
-            log.innerHTML += `<div><strong>Bot:</strong> Unexpected response from server.</div>`;
         }
+
+        if (data.sessionId) sessionId = data.sessionId;
     } catch (error) {
-        console.error("Fetch error:", error);
         document.getElementById(typingId).remove();
-        log.innerHTML += `<div><strong>Bot:</strong> Failed to connect to the server. Please try again later.</div>`;
+        log.innerHTML += `<div><strong>Bot:</strong> Could not connect to server.</div>`;
     }
 
     log.scrollTop = log.scrollHeight;

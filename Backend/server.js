@@ -1,5 +1,5 @@
 // ----------------------------
-// 📌 CORE MODULES
+// IMPORTS
 // ----------------------------
 const express = require('express');
 const mongoose = require('mongoose');
@@ -7,28 +7,22 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-// ----------------------------
-// 📌 EXTERNAL APIs
-// ----------------------------
 const twilio = require('twilio');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-// ----------------------------
-// 📌 ROUTES
-// ----------------------------
 const authRoutes = require('./routes/auth');
 
 const app = express();
 
+
 // ----------------------------
-// 📌 MIDDLEWARE
+// GLOBAL MIDDLEWARE
 // ----------------------------
 app.use(express.json());
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
+
 
 // ----------------------------
-// 📌 TWILIO CONFIG
+// TWILIO CONFIG
 // ----------------------------
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -36,26 +30,22 @@ const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
 const twilioClient = new twilio(accountSid, authToken);
 
+
 // ----------------------------
-// 📌 MONGODB CONNECTION (Render + Atlas compatible)
+// DATABASE
 // ----------------------------
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✔ MongoDB Connected Successfully"))
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
+
 // ----------------------------
-// 📌 AUTH ROUTES
+// ROUTES
 // ----------------------------
 app.use('/api/auth', authRoutes);
 
-// ----------------------------
-// 📌 SCHEMAS & MODELS
-// ----------------------------
 
-// Complaint Schema
+// MODELS
 const complaintSchema = new mongoose.Schema({
   name: String,
   email: String,
@@ -64,17 +54,15 @@ const complaintSchema = new mongoose.Schema({
 });
 const Complaint = mongoose.model("Complaint", complaintSchema);
 
-// Food Request Schema
 const foodRequestSchema = new mongoose.Schema({
-  requestorName: { type: String, required: true },
-  requestorMobile: { type: String, required: true },
-  requestorLocation: { type: String, required: true },
+  requestorName: String,
+  requestorMobile: String,
+  requestorLocation: String,
   timestamp: { type: Date, default: Date.now },
-  status: { type: String, default: 'pending', enum: ['pending', 'accepted'] }
+  status: { type: String, default: 'pending' }
 });
 const FoodRequest = mongoose.model("FoodRequest", foodRequestSchema);
 
-// Donation Schema
 const donationSchema = new mongoose.Schema({
   name: String,
   email: String,
@@ -83,19 +71,21 @@ const donationSchema = new mongoose.Schema({
   expiryDate: Date,
   location: String,
   submittedAt: { type: Date, default: Date.now },
-  status: { type: String, default: 'Listed on site', enum: ['Listed on site', 'Accepted'] }
+  status: { type: String, default: 'Listed on site' }
 });
 const Donation = mongoose.model('Donation', donationSchema);
 
+
 // ----------------------------
-// 📌 DEFAULT ROUTE
+// DEFAULT ROUTE
 // ----------------------------
 app.get("/", (req, res) => {
   res.send("MealMitra Backend is running successfully!");
 });
 
+
 // ----------------------------
-// 📌 COMPLAINT ROUTE
+// COMPLAINT ROUTE
 // ----------------------------
 app.post("/api/submit-complaint", async (req, res) => {
   try {
@@ -105,26 +95,24 @@ app.post("/api/submit-complaint", async (req, res) => {
       return res.status(400).json({ message: "All fields are required!" });
 
     await new Complaint({ name, email, complaint }).save();
-    res.json({ message: "Complaint submitted successfully!" });
 
+    res.json({ message: "Complaint submitted successfully!" });
   } catch (error) {
     res.status(500).json({ message: "Error submitting complaint!", error: error.message });
   }
 });
 
+
 // ----------------------------
-// 📌 FOOD REQUEST ROUTES
+// FOOD REQUEST ROUTES
 // ----------------------------
 app.post("/api/request-food", async (req, res) => {
   try {
     const { requestorName, requestorMobile, requestorLocation } = req.body;
 
-    if (!requestorName || !requestorMobile || !requestorLocation)
-      return res.status(400).json({ message: "All fields are required!" });
-
     await new FoodRequest({ requestorName, requestorMobile, requestorLocation }).save();
-    res.status(201).json({ message: "Food request submitted successfully!" });
 
+    res.status(201).json({ message: "Food request submitted successfully!" });
   } catch (error) {
     res.status(500).json({ message: "Error submitting food request!", error: error.message });
   }
@@ -142,33 +130,28 @@ app.get("/api/food-requests", async (req, res) => {
 app.patch("/api/food-requests/:id/accept", async (req, res) => {
   try {
     const request = await FoodRequest.findById(req.params.id);
-
-    if (!request)
-      return res.status(404).json({ message: "Request not found" });
+    if (!request) return res.status(404).json({ message: "Request not found" });
 
     request.status = 'accepted';
     await request.save();
 
     res.json({ message: "Request accepted successfully!" });
-
   } catch (error) {
     res.status(500).json({ message: "Error accepting request!", error: error.message });
   }
 });
 
+
 // ----------------------------
-// 📌 DONATION ROUTES
+// DONATION ROUTES
 // ----------------------------
 app.post("/api/submit-donation", async (req, res) => {
   try {
     const { name, email, mobile, foodDetails, expiryDate, location } = req.body;
 
-    if (!name || !email || !mobile || !foodDetails || !expiryDate || !location)
-      return res.status(400).json({ message: "All fields are required!" });
-
     await new Donation({ name, email, mobile, foodDetails, expiryDate, location }).save();
-    res.status(201).json({ message: "Donation submitted successfully!" });
 
+    res.status(201).json({ message: "Donation submitted successfully!" });
   } catch (error) {
     res.status(500).json({ message: "Error submitting donation!", error: error.message });
   }
@@ -186,14 +169,11 @@ app.get("/api/donations", async (req, res) => {
 app.patch("/api/donations/:id/accept", async (req, res) => {
   try {
     const donation = await Donation.findById(req.params.id);
-
-    if (!donation)
-      return res.status(404).json({ message: "Donation not found" });
+    if (!donation) return res.status(404).json({ message: "Donation not found" });
 
     donation.status = 'Accepted';
     await donation.save();
 
-    // Send SMS using Twilio
     await twilioClient.messages.create({
       body: 'Your donation has been accepted',
       from: twilioPhoneNumber,
@@ -201,62 +181,54 @@ app.patch("/api/donations/:id/accept", async (req, res) => {
     });
 
     res.json({ message: "Donation accepted & SMS sent!" });
-
   } catch (error) {
     res.status(500).json({ message: "Error accepting donation!", error: error.message });
   }
 });
 
-// ----------------------------
-// 📌 AI CHATBOT (Gemini)
-// ----------------------------
-const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
 
+// ----------------------------
+// CHATBOT
+// ----------------------------
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({
   model: "gemini-2.0-flash",
-  systemInstruction: `You are MealMitra chatbot assistant.`
+  systemInstruction: "You are MealMitra chatbot assistant."
 });
-
-const generationConfig = {
-  temperature: 1,
-  topP: 0.95,
-  topK: 40,
-  maxOutputTokens: 819,
-};
 
 const chatSessions = new Map();
 
-app.post('/api/chat', async (req, res) => {
-  const userMessage = req.body.message;
-  let sessionId = req.body.sessionId;
-
-  if (!sessionId || !chatSessions.has(sessionId)) {
-    sessionId = Math.random().toString(36).slice(2);
-    const chat = model.startChat({ generationConfig });
-    chatSessions.set(sessionId, { chat, lastUsed: Date.now() });
-
-    const warmup = await chat.sendMessage("Hello");
-    const warmupReply = warmup.response?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    return res.json({ reply: warmupReply || "Hi!", sessionId });
-  }
-
-  const session = chatSessions.get(sessionId);
-  session.lastUsed = Date.now();
-
+app.post("/api/chat", async (req, res) => {
   try {
-    const result = await session.chat.sendMessage(userMessage);
+    let { message, sessionId } = req.body;
+
+    if (!sessionId || !chatSessions.has(sessionId)) {
+      sessionId = Math.random().toString(36).slice(2);
+      const chat = model.startChat({});
+      chatSessions.set(sessionId, { chat, lastUsed: Date.now() });
+
+      const warmup = await chat.sendMessage("Hello!");
+      const warmReply = warmup.response.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      return res.json({ reply: warmReply, sessionId });
+    }
+
+    const session = chatSessions.get(sessionId);
+    session.lastUsed = Date.now();
+
+    const result = await session.chat.sendMessage(message);
     const reply = result.response.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    return res.json({ reply, sessionId });
-
-  } catch (err) {
-    return res.status(500).json({ error: "Error processing message" });
+    res.json({ reply, sessionId });
+  } catch (error) {
+    res.status(500).json({ error: "Error processing message" });
   }
 });
 
-// Clean old sessions
+
+// ----------------------------
+// CLEAN STALE CHAT SESSIONS
+// ----------------------------
 setInterval(() => {
   const now = Date.now();
   for (const [id, session] of chatSessions) {
@@ -264,10 +236,15 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
+
 // ----------------------------
-// 🚀 START SERVER
+// STATIC FILES MUST BE LAST ⚠️
+// ----------------------------
+app.use(express.static(path.join(__dirname, 'public')));
+
+
+// ----------------------------
+// START SERVER
 // ----------------------------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🔥 Server running on http://localhost:${PORT}`)
-);
+app.listen(PORT, () => console.log(`🔥 Server running on http://localhost:${PORT}`));
