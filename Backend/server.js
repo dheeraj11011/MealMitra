@@ -8,24 +8,21 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const app = express();
-
+app.get("/", (req, res) => {
+  res.send("Backend server is running 🚀");
+});
 // Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Twilio Configuration
-<<<<<<< HEAD
-const accountSid = process.env.TWILIO_ACCOUNT_SID || 'A**********************************';
-const authToken = process.env.TWILIO_AUTH_TOKEN || '2***************************************e';
-const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || '+1**************5';
-=======
-const accountSid = process.env.TWILIO_ACCOUNT_SID || 'AC8edff9247eefea19e276dcb7917aee10';
-const authToken = process.env.TWILIO_AUTH_TOKEN || '37f30a1dfe4a1b6ebdeee82e835c177c143d4c8f';
-const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || '+18563885305';
->>>>>>> 52aa5c5 (first commit)
-const twilioClient = new twilio(accountSid, authToken);
+// Twilio Configuration
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
+const twilioClient = new twilio(accountSid, authToken);
 // MongoDB Connection
 mongoose.connect('mongodb://127.0.0.1:27017/foodDonationDB', {
     useNewUrlParser: true,
@@ -406,7 +403,8 @@ app.listen(port, () => {
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-HEAD
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 

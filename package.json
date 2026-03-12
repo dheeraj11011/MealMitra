@@ -8,6 +8,7 @@
   "version": "1.0.0",
   "main": "FSD_JS.js",
   "scripts": {
+    "start": "node FSD_JS.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
